@@ -1,0 +1,129 @@
+// Cut off longer texts over 1 line with ...
+@mixin ellipsis ($max-width: 100%) {
+    max-width: $max-width;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+// Define vertical, horizontal, or both position
+@mixin center($position: horizontal) {
+    position: absolute;
+    @if $position=='vertical' {
+        top: 50%;
+        -webkit-transform: translateY(-50%);
+        -ms-transform: translateY(-50%);
+        transform: translateY(-50%);
+    }
+    @else if $position=='horizontal' {
+        left: 50%;
+        -webkit-transform: translateX(-50%);
+        -ms-transform: translateX(-50%);
+        transform: translate(-50%);
+    }
+    @else if $position=='both' {
+        top: 50%;
+        left: 50%;
+        -webkit-transform: translate(-50%, -50%);
+        -ms-transform: translate(-50%, -50%);
+        transform: translate(-50%, -50%);
+    }
+}
+
+// Placeholder styling
+@mixin placeholder {
+    $placeholders: ":-moz" ":-webkit-input" "-moz" "-ms-input";
+    @each $placeholder in $placeholders {
+        &:#{$placeholder}-placeholder {
+            @content;
+        }
+    }
+    &.placeholder {
+        @content;
+    }
+}
+
+//Fontawesome as pseudo element, types: solid, regular, light, duotone, brands(not yet active)
+@mixin fa-pseudo($position: before, $icon: '\f067', $type: regular) {
+    @if $position==before {
+        &:before {
+            @if $type==solid {
+                font-family: 'Font Awesome 5 Pro';
+                font-weight: 900;
+            }
+            @else if $type==regular {
+                font-family: 'Font Awesome 5 Pro';
+                font-weight: 400;
+            }
+            @else if $type==light {
+                font-family: 'Font Awesome 5 Pro';
+                font-weight: 300;
+            }
+            @else if $type==brands {
+                font-family: 'Font Awesome 5 Brands';
+                font-weight: 900;
+            }
+            display: inline-block;
+            font-style: normal;
+            font-variant: normal;
+            text-rendering: auto;
+            -webkit-font-smoothing: antialiased;
+            content: $icon;
+            @content;
+        }
+    }
+    @if $position==after {
+        &:after {
+            @if $type==solid {
+                font-family: 'Font Awesome 5 Pro';
+                font-weight: 900;
+            }
+            @else if $type==regular {
+                font-family: 'Font Awesome 5 Pro';
+                font-weight: 400;
+            }
+            @else if $type==light {
+                font-family: 'Font Awesome 5 Pro';
+                font-weight: 300;
+            }
+            @else if $type==duotone {
+                font-family: 'Font Awesome 5 Duotone';
+                font-weight: 900;
+            }
+            @else if $type==brands {
+                font-family: 'Font Awesome 5 Brands';
+                font-weight: 900;
+            }
+            display: inline-block;
+            font-style: normal;
+            font-variant: normal;
+            text-rendering: auto;
+            -webkit-font-smoothing: antialiased;
+            content: $icon;
+            @content;
+        }
+    }
+}
+
+//Box shadow
+@mixin box-shadow($top: 0, $left: 0, $blur: 8px, $spread: -3px, $color: rgba(0, 0, 0, 0.4), $inset: false) {
+    @if $inset {
+        -webkit-box-shadow: inset $top $left $blur $spread $color;
+        -moz-box-shadow: inset $top $left $blur $spread $color;
+        box-shadow: inset $top $left $blur $spread $color;
+    }
+    @else {
+        -webkit-box-shadow: $top $left $blur $spread $color;
+        -moz-box-shadow: $top $left $blur $spread $color;
+        box-shadow: $top $left $blur $spread $color;
+    }
+}
+
+//Transition
+@mixin transition($args...) {
+    -webkit-transition: $args;
+    -moz-transition: $args;
+    -ms-transition: $args;
+    -o-transition: $args;
+    transition: $args;
+}

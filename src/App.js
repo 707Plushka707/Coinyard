@@ -1,4 +1,4 @@
-import './App.css';
+import './scss/app.scss';
 import React, { Component } from "react";
 import { BrowserRouter as Router, Route, Link } from "react-router-dom";
 

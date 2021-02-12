@@ -3,7 +3,7 @@ import map from 'lodash/map';
 
 export default class Balance extends Component {
     render() {
-        const { error, balance } = this.state;
+        const { error, balance, isLoading } = this.state;
         let totalBalance = 0;
         let coins = map(balance, (value, key) => {
             if(balance[key].quantity > 0) {
@@ -14,9 +14,11 @@ export default class Balance extends Component {
             }
         })
         
+
+
         let btcPrice = map(balance, (value, key) => {
             if(key === 'BTC') {
-                return (balance[key].priceEur)
+                return (Number(balance[key].priceEur).toFixed(2))
             }
         })
 
@@ -24,10 +26,13 @@ export default class Balance extends Component {
           return <div>Error: {error.message}</div>;
         } else {
           return (
-            <div className="balance">
-                <h1>Mijn stacks: &euro;{totalBalance.toFixed(2)} 🚀</h1>
-                <h2>BTC: &euro; {btcPrice}</h2>
-                { coins }
+            <div>
+                <div className={ ` ${this.state.isLoading ? 'loading' : ''} balance` }>
+                    <h1>Mijn stacks: &euro;{totalBalance.toFixed(2)} 🚀</h1>
+                    <h2>BTC: &euro; {btcPrice}</h2>
+                    { coins }
+                </div>
+                <div class="rocket">🚀</div>
             </div>
           );
         }
@@ -38,29 +43,33 @@ export default class Balance extends Component {
 
         this.state = {
             balance: [],
-            btcPrice: ''
+            btcPrice: '',
+            isLoading: true
         }
     }
 
     componentDidMount() {
+        this.fetchBalance();
         this.interval = setInterval(() => {
-            fetch("/balance")
-            .then(res => res.json())
-            .then(
-                (result) => {
-                this.setState({
-                    balance: result
-                });
-                },
-                // Note: it's important to handle errors here
-                // instead of a catch() block so that we don't swallow
-                // exceptions from actual bugs in components.
-                (error) => {
-                this.setState({
-                    error
-                });
-                }
-            )
+            this.fetchBalance();
         }, 1000)
+    }
+
+    fetchBalance() {
+        fetch("/balance")
+        .then(res => res.json())
+        .then(
+            (result) => {
+            this.setState({
+                balance: result,
+                isLoading: false
+            });
+            },
+            (error) => {
+            this.setState({
+                error
+            });
+            }
+        )
     }
 }
