@@ -9,7 +9,7 @@ export default class Balance extends Component {
             if(balance[key].quantity > 0) {
                 totalBalance += balance[key].priceEur * balance[key].quantity
                 return (
-                    <h3 key={key}>{key} {(balance[key].priceEur * balance[key].quantity).toFixed(2)}</h3>
+                    <h3 key={key}>{key} &euro;{(balance[key].priceEur * balance[key].quantity).toFixed(2)}</h3>
                 )
             }
         })
@@ -25,8 +25,8 @@ export default class Balance extends Component {
         } else {
           return (
             <div className="balance">
-                {totalBalance}
-                <h1>BTC: &euro; {btcPrice}</h1>
+                <h1>Mijn stacks: &euro;{totalBalance.toFixed(2)} 🚀</h1>
+                <h2>BTC: &euro; {btcPrice}</h2>
                 { coins }
             </div>
           );
@@ -43,12 +43,13 @@ export default class Balance extends Component {
     }
 
     componentDidMount() {
-        fetch("/balance")
+        this.interval = setInterval(() => {
+            fetch("/balance")
             .then(res => res.json())
             .then(
                 (result) => {
                 this.setState({
-                    balance: result.balance
+                    balance: result
                 });
                 },
                 // Note: it's important to handle errors here
@@ -60,6 +61,6 @@ export default class Balance extends Component {
                 });
                 }
             )
-      }
-
+        }, 1000)
+    }
 }
