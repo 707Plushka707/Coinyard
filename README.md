@@ -25,5 +25,5 @@ And install backend packages<br/>
 Start server<br/>
 `nodemon server`
 
-Open another terminal in root and start app
+Open another terminal in root and start app <br/>
 `npm start`
