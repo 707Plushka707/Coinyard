@@ -17,7 +17,7 @@ export default class Balance extends Component {
 
 
         let btcPrice = map(balance, (value, key) => {
-            if(key === 'BTC') {
+            if(key == 'BTC') {
                 return (Number(balance[key].priceEur).toFixed(2))
             }
         })
@@ -49,13 +49,10 @@ export default class Balance extends Component {
     }
 
     componentDidMount() {
-        this.fetchBalance();
-        this.interval = setInterval(() => {
-            this.fetchBalance();
-        }, 1000)
-    }
-
-    fetchBalance() {
+        // this.fetchBalance();
+        // this.interval = setInterval(() => {
+        //     this.fetchBalance();
+        // }, 1000)
         fetch("/balance")
         .then(res => res.json())
         .then(
@@ -72,4 +69,6 @@ export default class Balance extends Component {
             }
         )
     }
+
+
 }

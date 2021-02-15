@@ -11,6 +11,7 @@ const binance = new Binance().options({
   useServerTime: true,
   recvWindow: 60000, // Set a higher recvWindow to increase response timeout
 });
+require('./ticker.model');
 
 async function getWallet() {
     return new Promise(function(resolve, reject) {
@@ -26,29 +27,53 @@ async function getWallet() {
 async function getBalance() {
     let balance = await getWallet();
     let newBalance = {}
-    let ticker = await binance.prices();
     for(const [key] of Object.entries(balance)) {
         if(balance[key].available > 0 || balance[key].onOrder > 0) {
-            const coin = key + 'BTC';
-            (async() => {
-                if(typeof ticker[coin] != 'undefined') {
-                    newBalance[key] = { 
-                        priceBtc: ticker[coin],
-                        priceEur: ticker.BTCEUR * ticker[coin],
-                        priceUsd: ticker.BTCUSDT * ticker[coin],
-                        quantity: Number(balance[key].available) + Number(balance[key].onOrder)
-                    }
+            let coin = key;
+            let found = false;
+            let valuta = false;
+            let pairing, priceBtc, priceEur, priceUsd;
+            if(typeof global.ticker[coin + 'BTC'] != 'undefined') {
+                pairing = key + 'BTC';
+                priceBtc = global.ticker[pairing].close;
+                priceEur = global.ticker[pairing].close * global.ticker['BTCEUR'].close;
+                priceUsd = global.ticker[pairing].close * global.ticker['BTCUSDT'].close;
+                found = true;
+            } else if (typeof global.ticker[coin + 'BNB'] != 'undefined' && !found){
+                pairing = key + 'BNB';
+                priceBtc = global.ticker[pairing].close * global.ticker['BNBBTC'].close;
+                priceEur = global.ticker[pairing].close * global.ticker['BNBEUR'].close;
+                priceUsd = global.ticker[pairing].close * global.ticker['BNBUSDT'].close;
+                found = true;
+            } else if (typeof global.ticker[coin + 'USDT'] != 'undefined' && !found) {
+                pairing = key + 'USDT';
+                priceBtc = global.ticker[pairing].close * global.ticker['BTCUSDT'].close;
+                priceEur = global.ticker[pairing].close / global.ticker['EURUSDT'].close;
+                priceUsd = global.ticker[pairing].close;
+                found = true;
+            } else if (typeof global.ticker[coin + 'ETH'] != 'undefined' && !found) {
+                pairing = key + 'ETH';
+                priceBtc = global.ticker[pairing].close * global.ticker['ETHBTC'].close;
+                priceEur = global.ticker[pairing].close * global.ticker['ETHEUR'].close;
+                priceUsd = global.ticker[pairing].close * global.ticker['ETHUSDT'].close;
+                found = true;
+            } else if (key == 'BTC') {
+                pairing = 'BTCEUR'
+                priceBtc = 1;
+                priceEur = global.ticker['BTCEUR'].close;
+                found = true;
+            } else {
+                found = false;
+            }
+            console.log(global.ticker['BTCEUR'])
+
+            if(found) {
+                newBalance[key] = { 
+                    priceBtc: priceBtc,
+                    priceEur: priceEur,
+                    priceUsd: priceUsd,
+                    quantity: Number(balance[key].available) + Number(balance[key].onOrder)
                 }
-            })();
-            if(key == 'BTC') {
-                (async() => {
-                    newBalance[key] = { 
-                        priceBtc: balance[key].available,
-                        priceEur: ticker.BTCEUR,
-                        priceUsd: ticker.BTCUSDT,
-                        quantity: Number(balance[key].available) + Number(balance[key].onOrder)
-                    }
-                })();
             }
         }
     }
