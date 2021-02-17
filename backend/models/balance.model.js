@@ -31,7 +31,6 @@ async function getBalance() {
         if(balance[key].available > 0 || balance[key].onOrder > 0) {
             let coin = key;
             let found = false;
-            let valuta = false;
             let pairing, priceBtc, priceEur, priceUsd;
             if(typeof global.ticker[coin + 'BTC'] != 'undefined') {
                 pairing = key + 'BTC';
@@ -65,7 +64,6 @@ async function getBalance() {
             } else {
                 found = false;
             }
-            console.log(global.ticker['BTCEUR'])
 
             if(found) {
                 newBalance[key] = { 

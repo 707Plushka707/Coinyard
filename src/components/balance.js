@@ -1,21 +1,31 @@
 import React, { Component } from 'react';
 import map from 'lodash/map';
+var _ = require('lodash');
 
 export default class Balance extends Component {
     render() {
         const { error, balance, isLoading } = this.state;
         let totalBalance = 0;
-        let coins = map(balance, (value, key) => {
-            if(balance[key].quantity > 0) {
-                totalBalance += balance[key].priceEur * balance[key].quantity
-                return (
-                    <h3 key={key}>{key} &euro;{(balance[key].priceEur * balance[key].quantity).toFixed(2)}</h3>
-                )
-            }
+        let coins = _(balance)
+            .map(function(v, k) {
+                return _.defaults(v, {key: k ,price: balance[k].priceEur * balance[k].quantity})
+            })
+            .orderBy('price', 'desc')
+            .value();
+        console.log(coins)
+        
+        let coinList = map(coins, (value, key) => {
+            totalBalance += coins[key].priceEur * coins[key].quantity
+            return (
+                <div className="coin">
+                    <h3 key={key}>{coins[key].key} &euro;{(coins[key].priceEur * coins[key].quantity).toFixed(2)}</h3>
+                    <div>quantity = {coins[key].quantity}</div>
+                    <div>$ = { Number(coins[key].priceUsd).toFixed(2) }</div>
+                    <div>&#8383; = {coins[key].priceBtc }</div>
+                </div>
+            )
         })
         
-
-
         let btcPrice = map(balance, (value, key) => {
             if(key == 'BTC') {
                 return (Number(balance[key].priceEur).toFixed(2))
@@ -30,9 +40,9 @@ export default class Balance extends Component {
                 <div className={ ` ${this.state.isLoading ? 'loading' : ''} balance` }>
                     <h1>Mijn stacks: &euro;{totalBalance.toFixed(2)} 🚀</h1>
                     <h2>BTC: &euro; {btcPrice}</h2>
-                    { coins }
+                    <div className="coins">{ coinList }</div>
                 </div>
-                <div class="rocket">🚀</div>
+                <div className="rocket">🚀</div>
             </div>
           );
         }
@@ -49,10 +59,6 @@ export default class Balance extends Component {
     }
 
     componentDidMount() {
-        // this.fetchBalance();
-        // this.interval = setInterval(() => {
-        //     this.fetchBalance();
-        // }, 1000)
         fetch("/balance")
         .then(res => res.json())
         .then(

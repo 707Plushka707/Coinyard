@@ -17,4 +17,18 @@
     @include animation("rocket .8s ease-in-out forwards");
 }
 
+.coins {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    margin-top: 40px;
+    .coin {
+        flex: 0 1 200px;
+        border: 1px solid lightgray;
+        border-radius: 10px;
+        margin: 0 25px 25px 0;
+        padding: 10px;
+    }
+}
+
 
