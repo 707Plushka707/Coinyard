@@ -38,6 +38,12 @@ async function getBalance() {
                 priceEur = global.ticker[pairing].close * global.ticker['BTCEUR'].close;
                 priceUsd = global.ticker[pairing].close * global.ticker['BTCUSDT'].close;
                 found = true;
+            } else if (key == 'BTC') {
+                pairing = 'BTCEUR'
+                priceBtc = 1;
+                priceEur = global.ticker['BTCEUR'].close;
+                priceUsd = global.ticker['BTCUSDT'].close;
+                found = true;
             } else if (typeof global.ticker[coin + 'BNB'] != 'undefined' && !found){
                 pairing = key + 'BNB';
                 priceBtc = global.ticker[pairing].close * global.ticker['BNBBTC'].close;
@@ -55,11 +61,6 @@ async function getBalance() {
                 priceBtc = global.ticker[pairing].close * global.ticker['ETHBTC'].close;
                 priceEur = global.ticker[pairing].close * global.ticker['ETHEUR'].close;
                 priceUsd = global.ticker[pairing].close * global.ticker['ETHUSDT'].close;
-                found = true;
-            } else if (key == 'BTC') {
-                pairing = 'BTCEUR'
-                priceBtc = 1;
-                priceEur = global.ticker['BTCEUR'].close;
                 found = true;
             } else {
                 found = false;
@@ -81,6 +82,7 @@ async function getBalance() {
 }
 
 module.exports = async function() {
+    console.log(await getBalance());
     let balance = await getBalance();
     return balance;
 };
