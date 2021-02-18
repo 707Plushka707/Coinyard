@@ -20,6 +20,7 @@ export default class Balance extends Component {
                 <div className="coin">
                     <h3 key={key}>{coins[key].key} &euro;{(coins[key].priceEur * coins[key].quantity).toFixed(2)}</h3>
                     <div>quantity = {coins[key].quantity}</div>
+                    <div>&euro; = { Number(coins[key].priceEur).toFixed(2) }</div>
                     <div>$ = { Number(coins[key].priceUsd).toFixed(2) }</div>
                     <div>&#8383; = {coins[key].priceBtc }</div>
                 </div>

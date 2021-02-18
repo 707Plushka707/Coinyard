@@ -10,9 +10,21 @@ function App() {
   return (
     <Router>
         <div className="App">
-          <Link to="/orders" className="navbar-brand">Orders</Link>
-          <Route path="/" exact component={balance} />
-          <Route path="/orders" component={orders} />
+          <div className="menu">
+            <div className="menu-logo"><h1>Coinyard</h1></div>
+            <div className="menu-items">
+              <div className="menu-items-item">
+                <Link to="/" className="menu-items-item__link">Home</Link>
+              </div>
+              <div className="menu-items-item">
+                <Link to="/orders" className="menu-items-item__link">Orders</Link>
+              </div>
+            </div>
+          </div>
+          <div className="main">
+            <Route path="/" exact component={balance} />
+            <Route path="/orders" component={orders} />
+          </div>
         </div>
     </Router>
   );
