@@ -50,11 +50,8 @@ app.post("/hook", (req, res, next) => {
 
         if(alerts[key].trend == 'up') {
             if(!alerts[key].active) {
-                console.info(`Awaiting buy confirmation for ${req.body.ticker} on ${req.body.interval}m interval`)
-                if(global.ticker[req.body.ticker].close > alerts[key].price) {
-                    Object.assign(alerts[key], {active: true, orderQ: stake / req.body.price, total: (stake / req.body.price) * req.body.price})
-                    console.info(`Bought ${alerts[key].orderQ} ${key} @ ${req.body.price} (Total: ${alerts[key].total})`)
-                }
+                Object.assign(alerts[key], {active: true, orderQ: stake / req.body.price, total: (stake / req.body.price) * req.body.price})
+                console.info(`Bought ${alerts[key].orderQ} ${key} @ ${req.body.price} (Total: ${alerts[key].total})`)
             }
         } else {
             if(alerts[key].active) {
@@ -67,7 +64,7 @@ app.post("/hook", (req, res, next) => {
                 }
 
                 Object.assign(alerts[key], {active: false, PnL: pnl})
-                console.info(`Sold ${alerts[key].orderQ} ${key} @ ${req.body.price}, PnL = ${(sellPrice - alerts[key].total).toFixed(2)}`)
+                console.info(`Sold ${alerts[key].orderQ} ${key} @ ${req.body.price}, PnL = ${(sellPrice - alerts[key].total)}`)
 
             }
         }
@@ -76,7 +73,7 @@ app.post("/hook", (req, res, next) => {
     console.info('Current PnL \n')
     for(const [val] of Object.entries(alerts)) {
         if(alerts[val].hasOwnProperty('PnL')) {
-            console.info(`${val} PnL = ${(alerts[val].PnL).toFixed(2)}`)
+            console.info(`${val} PnL = ${(alerts[val].PnL)}`)
         } else {
             console.info(`${val} PnL = 0 \n`)
         }
