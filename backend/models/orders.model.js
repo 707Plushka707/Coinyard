@@ -15,7 +15,7 @@ require('./ticker.model');
 
 let newOrders = {};
 async function getOrders() {
-  for(const [key] of Object.entries(global.ticker)) {
+//   for(const [key] of Object.entries(global.ticker)) {
 	  setTimeout(function() {
 		return new Promise(function(resolve, reject) {
 			binance.allOrders('REEFBTC', (error, orders, symbol) => {
@@ -23,7 +23,7 @@ async function getOrders() {
 			});
 		  })
 	  }, 350)
-  }
+//   }
 };
 
 // The only time the user data (account balances) and order execution websockets will fire, is if you create or cancel an order, or an order gets filled or partially filled

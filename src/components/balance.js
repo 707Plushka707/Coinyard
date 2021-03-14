@@ -20,8 +20,8 @@ export default class Balance extends Component {
                 <div className="coin">
                     <h3 key={key}>{coins[key].key} &euro;{(coins[key].priceEur * coins[key].quantity).toFixed(2)}</h3>
                     <div>quantity = {coins[key].quantity}</div>
-                    <div>&euro; = { Number(coins[key].priceEur).toFixed(2) }</div>
-                    <div>$ = { Number(coins[key].priceUsd).toFixed(2) }</div>
+                    <div>&euro; { Number(coins[key].priceEur).toFixed(2) }</div>
+                    <div>$ { Number(coins[key].priceUsd).toFixed(2) }</div>
                     <div>&#8383; = {coins[key].priceBtc }</div>
                 </div>
             )
@@ -39,7 +39,14 @@ export default class Balance extends Component {
           return (
             <div>
                 <div className={ ` ${this.state.isLoading ? 'loading' : ''} balance` }>
-                    <h1>Mijn stacks: &euro;{totalBalance.toFixed(2)} 🚀</h1>
+                    <div className="total-balance">
+                        <div className="total-balance__title">Total balance</div>
+                        <div className="total-balance__amount">
+                            <span className="total-balance__symbol">&euro;</span>{totalBalance.toFixed(2)}
+                        </div>
+                        <div className="total-balance__pnl">+15%</div>
+                    </div>
+                        
                     <h2>BTC: &euro; {btcPrice}</h2>
                     <div className="coins">{ coinList }</div>
                 </div>
