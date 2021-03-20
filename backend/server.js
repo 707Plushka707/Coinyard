@@ -63,112 +63,120 @@ binance.exchangeInfo(function(error, data) {
 	//fs.writeFile("minimums.json", JSON.stringify(minimums, null, 4), function(err){});
 });
 
-const stake = 2
-const leverage = 1
+async function wait(ms) {
+    return new Promise(resolve => {
+        setTimeout(resolve, ms);
+    });
+}
+
+const stake = 5
+const leverage = 10
 let alerts = {}
-let key, sellPrice, pnl
+let key, sellPrice, pnl, trend
+
 app.post("/hook", (req, res, next) => {
     // Create ticker object if it doesnt exist
     key = req.body.ticker + req.body.interval
     
     if(!(key in alerts)) {
-        alerts[key] = {}
+        alerts[key] = {};
+        Object.assign(alerts[key], {active: false, price: req.body.price, pendingSell: false, pendingBuy: false, started: false});
+    } else {
+        Object.assign(alerts[key], {price: req.body.price});
+    }
+    console.log(alerts)
+    console.log(new Date().toString());
+    if(!alerts[key].hasOwnProperty('direction')) {
+        if(req.body.vwap > 0) {
+            Object.assign(alerts[key], {"direction": "up"});
+        } else if(req.body.vwap < 0) {
+            Object.assign(alerts[key], {"direction": "down"});
+        }
+    }
+    console.log(`${key} direction: ${alerts[key].direction} VWAP: ${req.body.vwap}`);
+    if(alerts[key].direction == 'up' && req.body.vwap < 0) {
+        Object.assign(alerts[key], {started: true});
+    } else if (alerts[key].direction == 'down' && req.body.vwwap > 0) {
+        Object.assign(alerts[key], {started: true});
     }
 
-
-
-    // If bar close price 
-    if(req.body.confirm == 'buy' || req.body.confirm == 'sell') {
-        if(alerts[key].hasOwnProperty('trend')) {
-            if(req.body.confirm == 'buy' && req.body.vwap < 0) {
+    (async () => {
+        let position_data = await binance.futuresPositionRisk(), markets = Object.keys( position_data );
+        for ( let market of markets ) {
+            let symbol = position_data[market].symbol + req.body.interval;
+            let size = position_data[market].positionAmt;
+            if(size == 0) continue;
+            console.log(symbol);
+            if((symbol in alerts)) {
+                Object.assign(alerts[symbol], {quantity: size});
+                console.log(alerts[symbol]);
+            }
+          //console.info( obj ); //positionAmt entryPrice markPrice unRealizedProfit liquidationPrice leverage marginType isolatedMargin isAutoAddMargin maxNotionalValue
+        }
+    })();
+    
+    if(alerts[key].started) {
+        if(req.body.vwap > 0) {
+            if(alerts[key].pendingBuy && !alerts[key].active) {
+                (async () => {
+                    let order = await longOrder(req.body.ticker, req.body.price);
+                    Object.assign(alerts[key], {active: true, trend: req.body.trend, interval: req.body.interval, orderId: order.orderId, orderQ: order.cumQty, total: order.cumQuote, price: order.avgPrice, time: order.updateTime });
+                    console.info(`${new Date(order.updateTime)} - Placed long order: ${order.avgPrice} * ${order.cumQty}  (total: ${order.cumQuote})`);
+                })();
+                Object.assign(alerts[key], {pendingBuy: false});
+            } else if(!alerts[key].pendingBuy && !alerts[key].active) {
+                Object.assign(alerts[key], {pendingBuy: true});
+            }
+            if(alerts[key].pendingSell) {
+                Object.assign(alerts[key], {pendingSell: false});
+            }
+            if(alerts[key].trend == 'down' && alerts[key].active) {
                 sellPrice = alerts[key].orderQ * req.body.price;
                 if(alerts[key].hasOwnProperty('PnL')) {
-                    pnl = (alerts[key].PnL + (sellPrice - alerts[key].total)) - 0.08;
+                    pnl = alerts[key].PnL + (alerts[key].total - sellPrice) - 0.08;
                 } else {
-                    pnl = (sellPrice - alerts[key].total) - 0.08;
-                }
-                console.info('Bar close price lower than order price, closing position');
+                    pnl = (alerts[key].total - sellPrice)  - 0.08;
+                };
                 (async () => {
-                    let close = await closeOrder(req.body.ticker, alerts[key].orderId);
-                    Object.assign(alerts[key], {active: false, PnL: pnl});
-                    console.info(`${new Date(close.updateTime)} - Closed long order for ${req.body.ticker} (${alerts[key].orderId}) @ ${close.avgPrice}`);
+                    let order = await closeShort(req.body.ticker, alerts[key].quantity);
+                    Object.assign(alerts[key], {active: false, PnL: pnl });
+                    console.log(`Closed position for ${req.body.ticker}`)
                 })();
-            } else if(req.body.confirm == 'sell' && req.body.vwap > 0) {
+                Object.assign(alerts[key], {pendingBuy: true});
+            }
+        } else if(req.body.vwap < 0) {
+            if(alerts[key].pendingSell && !alerts[key].active) {
+                (async () => {
+                    let order = await shortOrder(req.body.ticker, req.body.price);
+                    Object.assign(alerts[key], {active: true, trend: req.body.trend, interval: req.body.interval, orderId: order.orderId, orderQ: order.cumQty, total: order.cumQuote, price: order.avgPrice, time: order.updateTime });
+                    console.info(`${new Date(order.updateTime)} - Placed short order: ${order.avgPrice} * ${order.cumQty}  (total: ${order.cumQuote})`);
+                })();
+                Object.assign(alerts[key], {pendingSell: false});
+            } else if(!alerts[key].pendingSell && !alerts[key].active) {
+                Object.assign(alerts[key], {pendingSell: true});
+            }
+            if(alerts[key].pendingBuy) {
+                Object.assign(alerts[key], {pendingBuy: false});
+            }
+            if(alerts[key].trend == 'up' && alerts[key].active) {
                 sellPrice = alerts[key].orderQ * req.body.price;
                 if(alerts[key].hasOwnProperty('PnL')) {
-                    pnl = (alerts[key].PnL + (alerts[key].total - sellPrice)) - 0.08;
+                    pnl = alerts[key].PnL + (alerts[key].total - sellPrice) - 0.08;
                 } else {
-                    pnl = (alerts[key].total - sellPrice) - 0.08;
+                    pnl = (alerts[key].total - sellPrice)  - 0.08;
                 }
-                console.info('Bar close price higher than order price, closing position');
                 (async () => {
-                    let close = await closeOrder(req.body.ticker, alerts[key].orderId);
-                    Object.assign(alerts[key], {active: false, PnL: pnl});
-                    console.info(`${new Date(close.updateTime)} - Closed short order for ${req.body.ticker} (${alerts[key].orderId}) @ ${close.avgPrice}`);
+                    let order = await closeLong(req.body.ticker, alerts[key].quantity);
+                    Object.assign(alerts[key], {active: false, PnL: pnl });
+                    console.log(`Closed position for ${req.body.ticker}`)
                 })();
-            } else {
-                Object.assign(alerts[key], {confirmed: true});
+                Object.assign(alerts[key], {pendingSell: false});
             }
         }
     } else {
-        if(req.body.trend == 'up') {
-            if(alerts[key].trend == 'down' && alerts[key].active && alerts[key].confirmed) {
-                sellPrice = alerts[key].orderQ * req.body.price;
-                if(alerts[key].hasOwnProperty('PnL')) {
-                    pnl = alerts[key].PnL + (alerts[key].total - sellPrice) - 0.08;
-                } else {
-                    pnl = (alerts[key].total - sellPrice)  - 0.08;
-                }
-                (async () => {
-                    let close = await closeOrder(req.body.ticker, alerts[key].orderId);
-                    console.info(`${new Date(close.updateTime)} - Closed short order for ${req.body.ticker} (${alerts[key].orderId}) @ ${close.avgPrice}`);
-                    let order = await longOrder(req.body.ticker, req.body.price);
-                    Object.assign(alerts[key], {PnL: pnl, confirmed: false, active: true, trend: req.body.trend, interval: req.body.interval, orderId: order.orderId, orderQ: order.cumQty, total: order.cumQuote, price: order.avgPrice, time: order.updateTime });
-                    console.info(`${new Date(order.updateTime)} - Placed long order: ${order.avgPrice} * ${order.cumQty}  (total: ${order.cumQuote})`);
-                })();
-            } else if(!alerts[key].hasOwnProperty('trend')) {
-                (async () => {
-                    let order = await longOrder(req.body.ticker, req.body.price);
-                    Object.assign(alerts[key], {active: true, confirmed: false, trend: req.body.trend, interval: req.body.interval, orderId: order.orderId, orderQ: order.cumQty, total: order.cumQuote, price: order.avgPrice, time: order.updateTime });
-                    console.info(`${new Date(order.updateTime)} - Placed long order: ${order.avgPrice} * ${order.cumQty}  (total: ${order.cumQuote})`);
-                })();
-            } else if(alerts[key].trend == 'up' && !alerts[key].active){
-                (async () => {
-                    let order = await longOrder(req.body.ticker, req.body.price);
-                    Object.assign(alerts[key], {active: true, confirmed: false, trend: req.body.trend, interval: req.body.interval, orderId: order.orderId, orderQ: order.cumQty, total: order.cumQuote, price: order.avgPrice, time: order.updateTime });
-                    console.info(`${new Date(order.updateTime)} - Placed long order: ${order.avgPrice} * ${order.cumQty}  (total: ${order.cumQuote})`);
-                })();
-            }
-        } else if(req.body.trend == 'down') {
-            if(alerts[key].trend == 'up' && alerts[key].active && alerts[key].confirmed) {
-                sellPrice = alerts[key].orderQ * req.body.price;
-                if(alerts[key].hasOwnProperty('PnL')) {
-                    pnl = alerts[key].PnL + (alerts[key].total - sellPrice) - 0.08;
-                } else {
-                    pnl = (alerts[key].total - sellPrice)  - 0.08;
-                }
-                (async () => {
-                    let close = await closeOrder(req.body.ticker, alerts[key].orderId);
-                    console.info(`${new Date(close.updateTime)} - Closed long order for ${req.body.ticker} (${alerts[key].orderId}) @ ${close.avgPrice}`)
-                    let order = await shortOrder(req.body.ticker, req.body.price);
-                    Object.assign(alerts[key], {PnL: pnl, confirmed: false, active: true, trend: req.body.trend, interval: req.body.interval, orderId: order.orderId, orderQ: order.cumQty, total: order.cumQuote, price: order.avgPrice, time: order.updateTime });
-                    console.info(`${new Date(order.updateTime)} - Placed short order: ${order.avgPrice} * ${order.cumQty}  (total: ${order.cumQuote})`);
-                })();
-            } else if(!alerts[key].hasOwnProperty('trend')) {
-                (async () => {
-                    let order = await shortOrder(req.body.ticker, req.body.price);
-                    Object.assign(alerts[key], {active: true, confirmed: false, trend: req.body.trend, interval: req.body.interval, orderId: order.orderId, orderQ: order.cumQty, total: order.cumQuote, price: order.avgPrice, time: order.updateTime });
-                    console.info(`${new Date(order.updateTime)} - Placed short order: ${order.avgPrice} * ${order.cumQty}  (total: ${order.cumQuote})`);
-                })();
-            } else if(alerts[key].trend == 'down' && !alerts[key].active){
-                (async () => {
-                    let order = await shortOrder(req.body.ticker, req.body.price);
-                    Object.assign(alerts[key], {active: true, confirmed: false, trend: req.body.trend, interval: req.body.interval, orderId: order.orderId, orderQ: order.cumQty, total: order.cumQuote, price: order.avgPrice, time: order.updateTime });
-                    console.info(`${new Date(order.updateTime)} - Placed short order: ${order.avgPrice} * ${order.cumQty}  (total: ${order.cumQuote})`);
-                })();
-            }
-        }
+        console.info(`Waiting for VWAP to cross plot, current vwap ${req.body.vwap}`);
     }
+    
     // if(req.body.confirm != 'buy' || req.body.confirm != 'sell') {
     // console.info('Current PnL \n');
     //     for(const [val] of Object.entries(alerts)) {
@@ -183,9 +191,10 @@ app.post("/hook", (req, res, next) => {
 })
 
 async function longOrder(ticker, price) {
+    console.log('Longing...')
     // Adjust leverage and change margin type to isolated
-    console.info( await binance.futuresLeverage( ticker, leverage ) );
-    console.info( await binance.futuresMarginType( ticker, 'ISOLATED' ) );
+    await binance.futuresLeverage( ticker, leverage );
+    await binance.futuresMarginType( ticker, 'ISOLATED' );
     let quantity = ((stake / price) * leverage);
     // Set minimum order amount with minQty
     if ( quantity < global.filters[ticker].minQty ) quantity = global.filters[ticker].minQty;
@@ -196,13 +205,14 @@ async function longOrder(ticker, price) {
     }
     let amount = binance.roundStep(quantity, global.filters[ticker].stepSize);
     let futureBuyOrder = await binance.futuresMarketBuy( ticker, amount, { newOrderRespType: 'RESULT' } );
-    console.log(futureBuyOrder);
+    // console.log(futureBuyOrder);
     return new Promise(function(resolve, reject) {
         resolve(futureBuyOrder);
     });
 }
 
 async function shortOrder(ticker, price) {
+    console.log('Shorting...')
     // Adjust leverage and change margin type to isolated
     console.info( await binance.futuresLeverage( ticker, leverage ) );
     console.info( await binance.futuresMarginType( ticker, 'ISOLATED' ) );
@@ -222,10 +232,18 @@ async function shortOrder(ticker, price) {
     });
 }
 
-async function closeOrder(ticker, orderId) {
-    let futureCancel = await binance.futuresCancel( ticker, {orderId: orderId} );
+async function closeShort(ticker, amount) {
+    let response = await binance.futuresMarketBuy( ticker, Math.abs(amount), { newOrderRespType: 'RESULT' } );
+    console.log(response);
     return new Promise(function(resolve, reject) {
-        resolve(futureCancel);
+        resolve(response);
+    });
+}
+async function closeLong(ticker, amount) {
+    let response = await binance.futuresMarketSell( ticker, Math.abs(amount), { newOrderRespType: 'RESULT' } );
+    console.log(response);
+    return new Promise(function(resolve, reject) {
+        resolve(response);
     });
 }
 
